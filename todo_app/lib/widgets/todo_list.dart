@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:implicitly_animated_list/implicitly_animated_list.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:todo_app/database/database.dart';
 
@@ -20,29 +21,72 @@ class TodoList extends StatelessWidget {
     return StreamBuilder<List<Todo>>(
       stream: todosStream,
       builder: (BuildContext context, AsyncSnapshot<List<Todo>> snapshot) {
-        final List<Todo> todos = snapshot.data ?? [];
+        List<Todo> todos = snapshot.data ?? [];
 
         return ImplicitlyAnimatedList<Todo>(
           itemData: todos,
           itemEquality: (a, b) => a.id == b.id,
-          itemBuilder: (context, data) => ListTile(
-            key: ValueKey(data.id),
-            title: Text(data.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: data.completed
-                    ? const TextStyle(decoration: TextDecoration.lineThrough)
-                    : null),
-            subtitle: data.description == null ? null : Text(data.description!),
-            trailing: Checkbox(
-              value: data.completed,
-              onChanged: (value) {
-                db.updateTodo(data.copyWith(completed: value));
-              },
-            ),
-          ),
+          physics: const BouncingScrollPhysics(),
+          deleteDuration: const Duration(milliseconds: 0),
+          itemBuilder: (context, data) => TodoListItem(todo: data),
         );
       },
+    );
+  }
+}
+
+class TodoListItem extends StatelessWidget {
+  const TodoListItem({super.key, required this.todo});
+
+  final Todo todo;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppDatabase db = Provider.of<AppDatabase>(context);
+
+    return KeyedSubtree(
+      key: ValueKey(todo.id),
+      child: Dismissible(
+        key: UniqueKey(),
+        onDismissed: (direction) {
+          db.deleteTodo(todo);
+        },
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 16),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        direction: DismissDirection.endToStart,
+        child: ListTile(
+          title: Text(todo.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: todo.completed
+                  ? const TextStyle(decoration: TextDecoration.lineThrough)
+                  : null),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (todo.description != null) Text(todo.description!),
+              const SizedBox(height: 4),
+              Chip(
+                label: Text(
+                  DateFormat('dd.MM.yyyy HH:mm')
+                      .format(DateTime.parse(todo.createdAt)),
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          trailing: Checkbox(
+            value: todo.completed,
+            onChanged: (value) {
+              db.updateTodo(todo.copyWith(completed: value));
+            },
+          ),
+        ),
+      ),
     );
   }
 }
