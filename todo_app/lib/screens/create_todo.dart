@@ -15,6 +15,8 @@ class _CreateTodoState extends State<CreateTodo> {
   final TextEditingController _todoDescriptionController =
       TextEditingController();
 
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   @override
   Widget build(BuildContext context) {
     final AppDatabase db = Provider.of<AppDatabase>(context);
@@ -30,38 +32,57 @@ class _CreateTodoState extends State<CreateTodo> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _todoTitleController,
-              decoration: const InputDecoration(
-                labelText: 'Todo',
-                border: OutlineInputBorder(),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _todoTitleController,
+                decoration: const InputDecoration(
+                  labelText: 'Todo',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a todo title';
+                  }
+                  return null;
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _todoDescriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _todoDescriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                db.addTodo(
-                  TodosCompanion(
-                    userId: moor.Value(user.id),
-                    title: moor.Value(_todoTitleController.text),
-                    description: moor.Value(_todoDescriptionController.text),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: BeveledRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                );
-                Navigator.pop(context, _todoTitleController.text);
-              },
-              child: const Text('Add Todo'),
-            ),
-          ],
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 32),
+                ),
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    db.addTodo(
+                      TodosCompanion(
+                        userId: moor.Value(user.id),
+                        title: moor.Value(_todoTitleController.text),
+                        description:
+                            moor.Value(_todoDescriptionController.text),
+                      ),
+                    );
+                    Navigator.pop(context, _todoTitleController.text);
+                  }
+                },
+                child: const Text('Add Todo'),
+              ),
+            ],
+          ),
         ),
       ),
     );
